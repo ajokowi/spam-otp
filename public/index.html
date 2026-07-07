@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ OTP Blaster</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg-grid {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 40px 0 30px;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00ff88, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .card {
+      background: rgba(15, 15, 25, 0.9);
+      border: 1px solid rgba(0,255,136,0.1);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .phone-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: #111118;
+      border: 2px solid rgba(0,255,136,0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .phone-input-wrapper:focus-within {
+      border-color: #00ff88;
+      box-shadow: 0 0 20px rgba(0,255,136,0.1);
+    }
+
+    .phone-prefix {
+      padding: 14px 12px 14px 16px;
+      color: #00ff88;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      user-select: none;
+    }
+
+    .phone-input {
+      flex: 1;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      outline: none;
+      letter-spacing: 1px;
+    }
+
+    .phone-input::placeholder {
+      color: #444;
+    }
+
+    .normalized-preview {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: rgba(0,255,136,0.05);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: #00ff88;
+      font-family: monospace;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .normalized-preview.show { display: flex; }
+
+    .normalized-preview .label { color: #666; }
+
+    .btn-send {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      border: none;
+      border-radius: 12px;
+      color: #000;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-send:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,255,136,0.3);
+    }
+
+    .btn-send:active { transform: translateY(0); }
+
+    .btn-send:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-send .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(0,0,0,0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results { display: none; }
+    .results.show { display: block; }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      background: rgba(15,15,25,0.9);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-item .value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .stat-item .label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-success .value { color: #00ff88; }
+    .stat-failed .value { color: #ff4757; }
+    .stat-total .value { color: #00d4ff; }
+
+    .log-container {
+      background: rgba(10,10,18,0.95);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .log-container::-webkit-scrollbar { width: 6px; }
+    .log-container::-webkit-scrollbar-track { background: transparent; }
+    .log-container::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      animation: slideIn 0.3s ease;
+      gap: 10px;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-item.sending {
+      background: rgba(255,193,7,0.08);
+      border-left: 3px solid #ffc107;
+    }
+
+    .log-item.success {
+      background: rgba(0,255,136,0.08);
+      border-left: 3px solid #00ff88;
+    }
+
+    .log-item.failed {
+      background: rgba(255,71,87,0.08);
+      border-left: 3px solid #ff4757;
+    }
+
+    .log-item .idx {
+      font-family: monospace;
+      color: #555;
+      font-size: 0.78rem;
+      min-width: 24px;
+    }
+
+    .log-item .icon { font-size: 1rem; }
+    .log-item .name { flex: 1; font-weight: 500; }
+    .log-item .badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .badge-success { background: rgba(0,255,136,0.15); color: #00ff88; }
+    .badge-failed { background: rgba(255,71,87,0.15); color: #ff4757; }
+    .badge-sending { background: rgba(255,193,7,0.15); color: #ffc107; }
+
+    .progress-bar {
+      height: 4px;
+      background: #1a1a2e;
+      border-radius: 2px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88, #00d4ff);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    .timer {
+      text-align: center;
+      font-family: monospace;
+      color: #555;
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    .format-hint {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(0,212,255,0.05);
+      border: 1px solid rgba(0,212,255,0.1);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: #888;
+    }
+
+    .format-hint code {
+      color: #00d4ff;
+      background: rgba(0,212,255,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 12px; }
+      .header h1 { font-size: 1.6rem; }
+      .card { padding: 20px; }
+      .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-item .value { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ OTP Blaster</h1>
+      <p>Multi-platform OTP sender • 16 endpoints</p>
+    </div>
+
+    <div class="card">
+      <div class="input-group">
+        <label>📱 Nomor Telepon Target</label>
+        <div class="phone-input-wrapper">
+          <span class="phone-prefix" id="prefix">+62</span>
+          <input 
+            type="tel" 
+            class="phone-input" 
+            id="phoneInput" 
+            placeholder="812-3456-7890"
+            autocomplete="off"
+          >
+        </div>
+        <div class="normalized-preview" id="normalizedPreview">
+          <span class="label">Format kirim:</span>
+          <span id="normalizedValue"></span>
+        </div>
+      </div>
+
+      <div class="format-hint">
+        💡 <strong>Format yang didukung:</strong><br>
+        <code>081234567890</code> • <code>81234567890</code> • <code>+6281234567890</code> • <code>6281234567890</code> • <code>0812-3456-7890</code>
+      </div>
+
+      <br>
+      <button class="btn-send" id="btnSend" onclick="startSpam()">
+        🚀 Kirim OTP
+      </button>
+    </div>
+
+    <div class="results" id="results">
+      <div class="stats-bar">
+        <div class="stat-item stat-success">
+          <div class="value" id="successCount">0</div>
+          <div class="label">Berhasil</div>
+        </div>
+        <div class="stat-item stat-failed">
+          <div class="value" id="failedCount">0</div>
+          <div class="label">Gagal</div>
+        </div>
+        <div class="stat-item stat-total">
+          <div class="value" id="totalCount">0</div>
+          <div class="label">Total</div>
+        </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="fill" id="progressFill"></div>
+      </div>
+
+      <div class="card">
+        <div class="log-container" id="logContainer"></div>
+        <div class="timer" id="timer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const phoneInput = document.getElementById('phoneInput');
+    const prefix = document.getElementById('prefix');
+    const normalizedPreview = document.getElementById('normalizedPreview');
+    const normalizedValue = document.getElementById('normalizedValue');
+
+    function normalizePhone(raw) {
+      let p = raw.replace(/[^0-9]/g, '');
+      if (p.startsWith('0')) p = '62' + p.slice(1);
+      if (p.startsWith('62')) {
+        prefix.textContent = '+62';
+      } else if (p.startsWith('8')) {
+        p = '62' + p;
+        prefix.textContent = '+62';
+      } else {
+        prefix.textContent = '+';
+      }
+      return p;
+    }
+
+    function formatDisplay(num) {
+      // Format as 628xxx-xxxx-xxxx
+      if (num.length <= 2) return num;
+      if (num.length <= 6) return num.slice(0,2) + ' ' + num.slice(2);
+      if (num.length <= 10) return num.slice(0,2) + ' ' + num.slice(2,6) + '-' + num.slice(6);
+      return num.slice(0,2) + ' ' + num.slice(2,6) + '-' + num.slice(6,10) + '-' + num.slice(10);
+    }
+
+    phoneInput.addEventListener('input', function() {
+      const raw = this.value;
+      const normalized = normalizePhone(raw);
+      
+      if (normalized.length >= 10) {
+        normalizedPreview.classList.add('show');
+        normalizedValue.textContent = formatDisplay(normalized);
+      } else {
+        normalizedPreview.classList.remove('show');
+      }
+    });
+
+    // Enter key support
+    phoneInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') startSpam();
+    });
+
+    let isRunning = false;
+    let startTime = null;
+    let timerInterval = null;
+
+    function startSpam() {
+      if (isRunning) return;
+
+      const raw = phoneInput.value.trim();
+      if (!raw) {
+        phoneInput.focus();
+        return;
+      }
+
+      const phone = normalizePhone(raw);
+      if (phone.length < 10) {
+        alert('Nomor telepon terlalu pendek!');
+        return;
+      }
+
+      isRunning = true;
+      const btn = document.getElementById('btnSend');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
+      // Reset results
+      const results = document.getElementById('results');
+      results.classList.add('show');
+      document.getElementById('successCount').textContent = '0';
+      document.getElementById('failedCount').textContent = '0';
+      document.getElementById('totalCount').textContent = '0';
+      document.getElementById('progressFill').style.width = '0%';
+      document.getElementById('logContainer').innerHTML = '';
+
+      startTime = Date.now();
+      timerInterval = setInterval(updateTimer, 100);
+
+      // SSE request
+      fetch('/api/spam', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: raw })
+      }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        function processStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              finishSpam();
+              return;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  handleEvent(data);
+                } catch(e) {}
+              }
+            }
+            processStream();
+          });
+        }
+        processStream();
+      }).catch(err => {
+        addLog(0, 'System', 'failed', 'Connection error: ' + err.message);
+        finishSpam();
+      });
+    }
+
+    let totalEndpoints = 0;
+    let processedCount = 0;
+    let successTotal = 0;
+    let failedTotal = 0;
+
+    function handleEvent(data) {
+      switch(data.type) {
+        case 'start':
+          // nothing extra
+          break;
+        case 'total':
+          totalEndpoints = data.count;
+          processedCount = 0;
+          successTotal = 0;
+          failedTotal = 0;
+          document.getElementById('totalCount').textContent = totalEndpoints;
+          break;
+        case 'sending':
+          addLog(data.idx, data.name, 'sending', 'Mengirim...');
+          break;
+        case 'result':
+          processedCount++;
+          if (data.success) {
+            successTotal++;
+            updateLogItem(data.idx, 'success', 'Terkirim');
+          } else {
+            failedTotal++;
+            updateLogItem(data.idx, 'failed', 'Gagal');
+          }
+          document.getElementById('successCount').textContent = successTotal;
+          document.getElementById('failedCount').textContent = failedTotal;
+          document.getElementById('progressFill').style.width = 
+            ((processedCount / totalEndpoints) * 100) + '%';
+          break;
+        case 'done':
+          finishSpam();
+          break;
+        case 'error':
+          addLog(0, 'System', 'failed', data.message);
+          finishSpam();
+          break;
+      }
+    }
+
+    function addLog(idx, name, status, badge) {
+      const container = document.getElementById('logContainer');
+      const div = document.createElement('div');
+      div.className = `log-item ${status}`;
+      div.id = `log-${idx}`;
+      
+      let icon = '⏳';
+      if (status === 'success') icon = '✅';
+      if (status === 'failed') icon = '❌';
+
+      div.innerHTML = `
+        <span class="idx">#${idx}</span>
+        <span class="icon">${icon}</span>
+        <span class="name">${name}</span>
+        <span class="badge badge-${status}">${badge}</span>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updateLogItem(idx, status, badge) {
+      const el = document.getElementById(`log-${idx}`);
+      if (!el) return;
+      
+      el.className = `log-item ${status}`;
+      let icon = status === 'success' ? '✅' : '❌';
+      el.querySelector('.icon').textContent = icon;
+      el.querySelector('.badge').className = `badge badge-${status}`;
+      el.querySelector('.badge').textContent = badge;
+    }
+
+    function updateTimer() {
+      if (!startTime) return;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      document.getElementById('timer').textContent = `⏱️ ${elapsed}s`;
+    }
+
+    function finishSpam() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      const btn = document.getElementById('btnSend');
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Kirim OTP';
+      updateTimer();
+    }
+  </script>
+</body>
+</html>
