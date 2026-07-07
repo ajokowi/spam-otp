@@ -9,10 +9,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const CONFIG = {
   concurrent: 1,
-  retries: 2,
-  timeout: 45000,
-  delayMin: 3000,
-  delayMax: 5000
+  retries: 0,
+  timeout: 15000,
+  delayMin: 500,
+  delayMax: 1000
 };
 
 const USER_AGENTS = [
@@ -154,11 +154,7 @@ async function sendRequest(endpoint, idx, logs) {
     ...(endpoint.headers || {})
   };
 
-  if (endpoint.url.includes('fastwork.id')) {
-    await randomDelay(30000, 45000);
-  } else {
-    await randomDelay(1000, 2000);
-  }
+  // No pre-request delay — fire fast
 
   for (let attempt = 0; attempt <= CONFIG.retries; attempt++) {
     try {
@@ -188,26 +184,11 @@ async function sendRequest(endpoint, idx, logs) {
         return true;
       }
 
-      if (resp.status === 429) {
-        let retryAfter = 30;
-        try {
-          if (responseBody && responseBody.retry_after) retryAfter = parseInt(responseBody.retry_after) || 30;
-          if (responseBody && responseBody.error_code === 1015) retryAfter = 60;
-        } catch(e) {}
-        await randomDelay(retryAfter * 1000, (retryAfter + 10) * 1000);
-        continue;
-      }
-
-      if (attempt < CONFIG.retries) {
-        await randomDelay(5000, 8000);
-        continue;
-      }
+      // No retry on 429 or errors — just fail fast
+      break;
 
     } catch (e) {
-      if (attempt < CONFIG.retries) {
-        await randomDelay(3000, 5000);
-        continue;
-      }
+      break;
     }
   }
   logs.push({ idx, name: endpoint.name, status: 'failed' });
@@ -248,7 +229,7 @@ app.post('/api/spam', async (req, res) => {
       res.write(`data: ${JSON.stringify({ type: 'result', idx: i + 1, name: endpoints[i].name, success: result, http: lastLog ? lastLog.http : null })}\n\n`);
       
       if (i < endpoints.length - 1) {
-        await randomDelay(1500, 3000);
+        await randomDelay(300, 600);
       }
     }
 
