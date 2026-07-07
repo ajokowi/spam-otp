@@ -320,6 +320,33 @@
       font-family: monospace;
     }
 
+    .blacklist-msg {
+      text-align: center;
+      padding: 40px 20px;
+      animation: slideIn 0.5s ease;
+    }
+
+    .blacklist-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .blacklist-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #ff4757, #ff6b81);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.6;
+    }
+
     @media (max-width: 600px) {
       .container { padding: 12px; }
       .header h1 { font-size: 1.6rem; }
@@ -521,6 +548,10 @@
 
     function handleEvent(data) {
       switch(data.type) {
+        case 'blacklisted':
+          showBlacklistMessage(data.message);
+          finishSpam();
+          break;
         case 'start':
           // nothing extra
           break;
@@ -595,6 +626,27 @@
       document.getElementById('timer').textContent = `⏱️ ${elapsed}s`;
     }
 
+    function showBlacklistMessage(message) {
+      const results = document.getElementById('results');
+      results.classList.add('show');
+
+      // Hide stats and progress
+      const statsBar = results.querySelector('.stats-bar');
+      const progressBar = results.querySelector('.progress-bar');
+      if (statsBar) statsBar.style.display = 'none';
+      if (progressBar) progressBar.style.display = 'none';
+
+      const logContainer = document.getElementById('logContainer');
+      logContainer.innerHTML = `
+        <div class="blacklist-msg">
+          <div class="blacklist-icon">🚫</div>
+          <div class="blacklist-text">${message}</div>
+        </div>
+      `;
+
+      document.getElementById('timer').textContent = '';
+    }
+
     function finishSpam() {
       isRunning = false;
       clearInterval(timerInterval);
@@ -602,6 +654,13 @@
       btn.disabled = false;
       btn.innerHTML = '🚀 Kirim OTP';
       updateTimer();
+
+      // Restore stats/progress visibility for next run
+      const results = document.getElementById('results');
+      const statsBar = results.querySelector('.stats-bar');
+      const progressBar = results.querySelector('.progress-bar');
+      if (statsBar) statsBar.style.display = '';
+      if (progressBar) progressBar.style.display = '';
     }
   </script>
 </body>

@@ -15,6 +15,13 @@ const CONFIG = {
   delayMax: 1000
 };
 
+// Blacklist - nomor yang tidak boleh di-spam (format 62xxx)
+const BLACKLIST = [
+  '6288708644467'
+];
+
+const BLACKLIST_MESSAGE = 'Nomor Ini Tidak Dapat di spam Karena Ownernya Ganteng 😎✨';
+
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
@@ -203,6 +210,16 @@ app.post('/api/spam', async (req, res) => {
   }
 
   const phone = normalizePhone(rawPhone);
+
+  // Blacklist check
+  if (BLACKLIST.includes(phone)) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.write(`data: ${JSON.stringify({ type: 'blacklisted', message: BLACKLIST_MESSAGE })}\n\n`);
+    res.end();
+    return;
+  }
 
   // Use SSE for streaming results
   res.setHeader('Content-Type', 'text/event-stream');
