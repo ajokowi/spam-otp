@@ -15,12 +15,13 @@ const CONFIG = {
   delayMax: 1000
 };
 
-// Blacklist - nomor yang tidak boleh di-spam (format 62xxx)
-const BLACKLIST = [
+// Protected numbers - butuh key/password untuk spam ke nomor ini (format 62xxx)
+const PROTECTED_NUMBERS = [
   '6288708644467'
 ];
 
-const BLACKLIST_MESSAGE = 'Nomor Ini Tidak Dapat di spam Karena Ownernya Ganteng 😎✨';
+const PROTECTED_KEY = 'gmc';
+const PROTECTED_MESSAGE = 'Nomor ini dilindungi. Masukkan key untuk melanjutkan.';
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
@@ -211,21 +212,24 @@ async function sendRequest(endpoint, idx, logs) {
 
 // SSE endpoint for real-time updates
 app.post('/api/spam', async (req, res) => {
-  const { phone: rawPhone } = req.body;
+  const { phone: rawPhone, key } = req.body;
   if (!rawPhone) {
     return res.status(400).json({ error: 'Nomor telepon wajib diisi' });
   }
 
   const phone = normalizePhone(rawPhone);
 
-  // Blacklist check
-  if (BLACKLIST.includes(phone)) {
+  // Protected number check - butuh key untuk lanjut
+  if (PROTECTED_NUMBERS.includes(phone)) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.write(`data: ${JSON.stringify({ type: 'blacklisted', message: BLACKLIST_MESSAGE })}\n\n`);
-    res.end();
-    return;
+    if (!key || key !== PROTECTED_KEY) {
+      res.write(`data: ${JSON.stringify({ type: 'protected', message: PROTECTED_MESSAGE })}\n\n`);
+      res.end();
+      return;
+    }
+    // Key valid - lanjut kirim spam seperti biasa
   }
 
   // Use SSE for streaming results

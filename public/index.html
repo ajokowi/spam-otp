@@ -464,6 +464,159 @@
       line-height: 1.6;
     }
 
+    /* Key Modal Overlay */
+    .key-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(45, 45, 63, 0.6);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .key-overlay.show { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .key-modal {
+      background: #fff;
+      border-radius: 24px;
+      padding: 36px 32px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(45, 45, 63, 0.2);
+      animation: scaleIn 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .key-modal::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--mustard), var(--coral));
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .key-modal .lock-icon {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+    }
+
+    .key-modal h3 {
+      font-size: 1.2rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .key-modal p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .key-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--cream);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .key-input-wrapper:focus-within {
+      border-color: var(--mustard);
+      box-shadow: 0 0 0 4px rgba(212, 168, 67, 0.15);
+    }
+
+    .key-input-wrapper .icon {
+      padding: 14px 12px;
+      font-size: 1.1rem;
+      opacity: 0.5;
+    }
+
+    .key-input {
+      flex: 1;
+      padding: 14px 14px 14px 0;
+      background: transparent;
+      border: none;
+      font-size: 1rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--navy);
+      outline: none;
+      letter-spacing: 2px;
+    }
+
+    .key-input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.4;
+      letter-spacing: 0;
+    }
+
+    .key-error {
+      color: var(--coral);
+      font-size: 0.78rem;
+      margin-bottom: 12px;
+      display: none;
+      font-weight: 500;
+    }
+
+    .key-error.show { display: block; animation: shake 0.4s ease; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .key-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--navy);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    .key-btn:hover {
+      background: var(--coral);
+      transform: translateY(-1px);
+    }
+
+    .key-cancel {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 6px;
+    }
+
+    .key-cancel:hover { color: var(--coral); }
+
     /* Footer */
     .footer {
       text-align: center;
@@ -559,6 +712,28 @@
     <div class="footer">OTP Blaster &middot; 2026</div>
   </div>
 
+  <!-- Key Modal -->
+  <div class="key-overlay" id="keyOverlay">
+    <div class="key-modal">
+      <div class="lock-icon">🔐</div>
+      <h3>Nomor Dilindungi</h3>
+      <p>Nomor ini memerlukan key untuk melanjutkan pengiriman OTP</p>
+      <div class="key-input-wrapper">
+        <span class="icon">🔑</span>
+        <input 
+          type="password" 
+          class="key-input" 
+          id="keyInput" 
+          placeholder="Masukkan key..."
+          autocomplete="off"
+        >
+      </div>
+      <div class="key-error" id="keyError">Key salah! Coba lagi.</div>
+      <button class="key-btn" id="keySubmit" onclick="submitKey()">Lanjutkan</button>
+      <button class="key-cancel" onclick="cancelKey()">Batal</button>
+    </div>
+  </div>
+
   <script>
     const phoneInput = document.getElementById('phoneInput');
     const prefix = document.getElementById('prefix');
@@ -604,8 +779,9 @@
     let isRunning = false;
     let startTime = null;
     let timerInterval = null;
+    let pendingPhone = null;
 
-    function startSpam() {
+    function startSpam(providedKey) {
       if (isRunning) return;
 
       const raw = phoneInput.value.trim();
@@ -620,6 +796,7 @@
         return;
       }
 
+      pendingPhone = raw;
       isRunning = true;
       const btn = document.getElementById('btnSend');
       btn.disabled = true;
@@ -636,10 +813,12 @@
       startTime = Date.now();
       timerInterval = setInterval(updateTimer, 100);
 
+      const body = { phone: raw };
+      if (providedKey) body.key = providedKey;
       fetch('/api/spam', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: raw })
+        body: JSON.stringify(body)
       }).then(response => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -683,6 +862,10 @@
       switch(data.type) {
         case 'blacklisted':
           showBlacklistMessage(data.message);
+          finishSpam();
+          break;
+        case 'protected':
+          showKeyModal();
           finishSpam();
           break;
         case 'start':
@@ -777,6 +960,41 @@
 
       document.getElementById('timer').textContent = '';
     }
+
+    function showKeyModal() {
+      document.getElementById('keyOverlay').classList.add('show');
+      document.getElementById('keyError').classList.remove('show');
+      document.getElementById('keyInput').value = '';
+      setTimeout(() => document.getElementById('keyInput').focus(), 100);
+    }
+
+    function cancelKey() {
+      document.getElementById('keyOverlay').classList.remove('show');
+      const results = document.getElementById('results');
+      results.classList.remove('show');
+    }
+
+    function submitKey() {
+      const keyVal = document.getElementById('keyInput').value.trim();
+      if (!keyVal) {
+        document.getElementById('keyError').textContent = 'Key tidak boleh kosong!';
+        document.getElementById('keyError').classList.add('show');
+        return;
+      }
+      document.getElementById('keyOverlay').classList.remove('show');
+      // Retry with key
+      startSpam(keyVal);
+    }
+
+    // Enter key on modal input
+    document.addEventListener('DOMContentLoaded', function() {
+      const keyInput = document.getElementById('keyInput');
+      if (keyInput) {
+        keyInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') submitKey();
+        });
+      }
+    });
 
     function finishSpam() {
       isRunning = false;
