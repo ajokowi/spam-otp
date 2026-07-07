@@ -149,7 +149,10 @@ async function getOTPEndpoints(phone) {
     { name: "Paper.id Register", url: "https://register.paper.id/api/v1/auth/register/send-otp", data: { phone: p62, method: "whatsapp", registered_by: "web" } },
     { name: "Rumah123", url: "https://www.rumah123.com/api/otp/request-otp", data: { ipAddress: ip, phoneNumber: p62, portalId: 1, type: "WHATSAPP", url: "https://www.rumah123.com/user/login" }, headers: { "Base-Url-Core": "https://www.rumah123.com" } },
     { name: "Saturdays Beta", url: "https://beta.api.saturdays.com/api/v1/user/otp/send", data: { number: pNoCountry, country_code: "+62", type: "" }, headers: { "x-api-key": "GCMUDiuY5a7WvyUNt9n3QztToSHzK7Uj", "country-code": "ID", "visitor-id": randomUUID(), "session-id": randomUUID() } },
-    { name: "Bunda", url: "https://bunda.co.id/api/v1/auth/send-otp", data: { phone_number: pNoCountry, country_code: "62", type: "auth" }, headers: { "Origin": "https://bunda.co.id", "Referer": "https://bunda.co.id/", "X-Requested-With": "XMLHttpRequest" } }
+    { name: "Bunda", url: "https://bunda.co.id/api/v1/auth/send-otp", data: { phone_number: pNoCountry, country_code: "62", type: "auth" }, headers: { "Origin": "https://bunda.co.id", "Referer": "https://bunda.co.id/", "X-Requested-With": "XMLHttpRequest" } },
+    { name: "Sicepat", url: `https://api.sicepatconsumer.com/v3/masterdata/user/otp/request/${p62}?sms=false`, data: null, method: "GET", headers: { "x-recaptcha": "acf49209:033951e692315ba" } },
+    { name: "Bliblitiket", url: "https://account.bliblitiket.com/gateway/gks-unm-go-be/api/v1/otp/generate", data: { action: "REGISTER_OTP", channel: "WHATS_APP", recipient: p62, recaptchaToken: "" } },
+    { name: "Adiraku", url: "https://prod.adiraku.co.id/ms-auth/auth/generate-otp-vdata", data: { mobileNumber: pNoCountry, type: "prospect-create", channel: "whatsapp" } }
   ];
 }
 
